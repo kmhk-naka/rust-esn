@@ -1,4 +1,4 @@
-use gnuplot::{AxesCommon, Caption, Color, Figure, Fix};
+use gnuplot::{AxesCommon, Caption, Color, Figure, Fix, Font, Graph, Major};
 use ndarray::{arr1, arr2, s, Array1, Array2};
 use ndarray_linalg as LA;
 use ndarray_linalg::*;
@@ -142,6 +142,12 @@ impl ESN {
             av.assign(&y.column(0));
         }
 
+        let x_step = (*tmax - self.train_length) / 10;
+        let x_ticks = (self.train_length as i32..*tmax as i32).step_by(x_step);
+        let y_max = (outputs.iter().fold(0.0 / 0.0, |m, v| v.max(m)) * 10.0) as i32;
+        let y_min = (outputs.iter().fold(0.0 / 0.0, |m, v| v.max(m)) * 10.0) as i32;
+        let y_ticks = (y_min..y_max).step_by(2).map(|x| x as f64 / 10.0);
+
         let mut fg = Figure::new();
         fg.axes2d()
             .lines(
@@ -154,8 +160,19 @@ impl ESN {
                 test_data.iter(),
                 &[Color("red"), Caption("input")],
             )
-            .set_y_range(Fix(fmin), Fix(fmax));
-        fg.save_to_png(format!("{}/{}_prediction.png", path, fname), 1024, 768)
+            .set_y_range(Fix(fmin), Fix(fmax))
+            .set_x_ticks_custom(
+                x_ticks.map(|x| Major(x as i32, Fix(x.to_string()))),
+                &[],
+                &[Font("Monospace", 18.)],
+            )
+            .set_y_ticks_custom(
+                y_ticks.map(|x| Major(x as f32, Fix("%.1f".to_string()))),
+                &[],
+                &[Font("Monospace", 18.)],
+            )
+            .set_legend(Graph(1.0), Graph(1.0), &[], &[Font("Monospace", 20.)]);
+        fg.save_to_png(format!("{}/{}_prediction.png", path, fname), 1280, 720)
             .unwrap();
     }
 }
